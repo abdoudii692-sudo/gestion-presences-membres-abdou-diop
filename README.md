@@ -96,3 +96,4 @@ Création du compte : suivre `supabase/admin_identifiant.sql`. Le mot de passe n
 # Gestion-membres-presences-abdou
 # gestion-presences-membres-abdou
 # gestion-presences-membres-abdou-diop
+# gestion-presences-membres-abdou-diop
