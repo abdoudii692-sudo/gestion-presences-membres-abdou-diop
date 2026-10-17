@@ -100,8 +100,22 @@ export default function Login() {
       <form className="login-card" onSubmit={submit}>
         <div className="brand-mark large">MJ</div>
 
-        <h1>Espace membres</h1>
-        <p>Moustarchidine Junior</p>
+                <h1>Espace membres</h1>
+        <p style={{ margin: "8px 0 6px" }}>Moustarchidine Junior</p>
+        <div
+          style={{
+            textAlign: "center",
+            margin: "0 0 6px",
+            fontSize: 13,
+            fontWeight: 600,
+            lineHeight: 1.65,
+            color: "#0e5a42",
+          }}
+        >
+          <div>Section NGOUFAT 1</div>
+          <div>Conseil THIOLOM 2</div>
+          <div>Comité LOUGA</div>
+        </div>
 
         <label htmlFor="login-email">Identifiant</label>
         <div className="input-icon">
