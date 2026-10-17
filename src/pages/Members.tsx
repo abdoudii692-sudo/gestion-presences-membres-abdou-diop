@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { MessageCircle, Phone, Plus, Search, Trash2, UserRoundPen, Upload } from "lucide-react";
+import { MessageCircle, Phone, Plus, Search, Trash2, UserCheck, UserRoundPen, UserX, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "../lib/supabase";
 import PageHeader from "../components/PageHeader";
@@ -9,6 +9,7 @@ import { fmtDate, GOUDI, loadStats, type StatsData } from "../lib/stats";
 export default function Members() {
   const [members,setMembers]=useState<Member[]>([]);
   const [q,setQ]=useState("");
+  const [view,setView]=useState<"active"|"inactive"|"all">("active");
   const [open,setOpen]=useState(false);
   const [form,setForm]=useState({first_name:"",last_name:"",email:"",phone:"",locality:"",function_name:"",status:"active"});
 
@@ -76,6 +77,18 @@ export default function Members() {
     setForm({first_name:"",last_name:"",email:"",phone:"",locality:"",function_name:"",status:"active"});
     setOpen(false); load();
   }
+  async function setStatus(m:Member,status:"active"|"inactive"){
+    const msg=status==="inactive"
+      ?`Masquer ${m.first_name} ${m.last_name} ?\n\nCe membre ne sera plus compté dans les statistiques, les relances et les listes de présence. Son historique est conservé et vous pourrez le réactiver à tout moment.`
+      :`Réactiver ${m.first_name} ${m.last_name} ?\n\nIl sera de nouveau compté dans les statistiques et les listes de présence.`;
+    if(!confirm(msg))return;
+    const {data,error}=await supabase.from("members").update({status}).eq("id",m.id).select();
+    if(error){alert("Impossible de modifier le statut : "+error.message);return;}
+    if(!data||!data.length){alert("Modification refusée : seuls les administrateurs et les responsables peuvent modifier un membre.");return;}
+    if(detail&&detail.id===m.id)setDetail(data[0] as Member);
+    load();
+    loadStats().then(setStats).catch(()=>setStatsErr(true));
+  }
   async function remove(id:string){
     if(!confirm("Supprimer ce membre ?")) return;
     await supabase.from("members").delete().eq("id",id); load();
@@ -122,12 +135,14 @@ export default function Members() {
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Membres");XLSX.writeFile(wb,"modele-import-membres.xlsx");
   }
 
-  const filtered=members.filter(m=>`${m.first_name} ${m.last_name} ${m.phone||""} ${m.email||""}`.toLowerCase().includes(q.toLowerCase()));
+  const counts={active:members.filter(m=>m.status==="active").length,inactive:members.filter(m=>m.status==="inactive").length};
+  const filtered=members.filter(m=>(view==="all"||m.status===view)&&`${m.first_name} ${m.last_name} ${m.phone||""} ${m.email||""}`.toLowerCase().includes(q.toLowerCase()));
 
-  return <><PageHeader title="Membres" description={`${members.length} membre(s) enregistré(s).`} action={<div className="att-actions"><button className="secondary" onClick={()=>{setImpOpen(true);setImp(null);setImpMsg("");}}><Upload size={18}/> Importer</button><button className="primary" onClick={()=>setOpen(true)}><Plus size={18}/> Ajouter un membre</button></div>}/>
+  return <><PageHeader title="Membres" description={`${counts.active} membre(s) actif(s)${counts.inactive?` · ${counts.inactive} ancien(s) membre(s) masqué(s)`:""}.`} action={<div className="att-actions"><button className="secondary" onClick={()=>{setImpOpen(true);setImp(null);setImpMsg("");}}><Upload size={18}/> Importer</button><button className="primary" onClick={()=>setOpen(true)}><Plus size={18}/> Ajouter un membre</button></div>}/>
     <div className="toolbar"><div className="input-icon search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher…"/></div></div>
+    <div className="type-tabs">{([["active",`Membres actifs (${counts.active})`],["inactive",`Anciens membres (${counts.inactive})`],["all","Tous"]] as ["active"|"inactive"|"all",string][]).map(([k,l])=><button type="button" key={k} className={`type-tab${view===k?" on":""}`} onClick={()=>setView(k)}>{l}</button>)}</div>
     <div className="panel table-wrap"><table><thead><tr><th>N°</th><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>E-mail</th><th>Statut</th><th>Actions</th></tr></thead>
-    <tbody>{filtered.map(m=><tr key={m.id} onClick={()=>openDetail(m)} style={{cursor:"pointer"}} title="Voir la fiche du membre"><td>{m.member_number}</td><td>{m.first_name}</td><td>{m.last_name}</td><td>{m.phone||"—"}</td><td>{m.email||"—"}</td><td><span className={`badge ${m.status}`}>{m.status}</span></td><td><button className="icon-btn" title="Voir la fiche" onClick={e=>{e.stopPropagation();openDetail(m);}}><UserRoundPen size={17}/></button><button className="icon-btn danger" title="Supprimer" onClick={e=>{e.stopPropagation();remove(m.id);}}><Trash2 size={17}/></button></td></tr>)}</tbody></table>{!filtered.length&&<div className="empty">Aucun membre trouvé.</div>}</div>
+    <tbody>{filtered.map(m=><tr key={m.id} onClick={()=>openDetail(m)} style={{cursor:"pointer",opacity:m.status==="inactive"?.6:1}} title="Voir la fiche du membre"><td>{m.member_number}</td><td>{m.first_name}</td><td>{m.last_name}</td><td>{m.phone||"—"}</td><td>{m.email||"—"}</td><td><span className={`badge ${m.status}`}>{m.status==="active"?"Actif":"Ancien membre"}</span></td><td><button className="icon-btn" title="Voir la fiche" onClick={e=>{e.stopPropagation();openDetail(m);}}><UserRoundPen size={17}/></button><button className="icon-btn" title={m.status==="active"?"Masquer (ancien membre)":"Réactiver"} onClick={e=>{e.stopPropagation();setStatus(m,m.status==="active"?"inactive":"active");}}>{m.status==="active"?<UserX size={17}/>:<UserCheck size={17}/>}</button><button className="icon-btn danger" title="Supprimer" onClick={e=>{e.stopPropagation();remove(m.id);}}><Trash2 size={17}/></button></td></tr>)}</tbody></table>{!filtered.length&&<div className="empty">{view==="inactive"&&!q?"Aucun ancien membre masqué.":"Aucun membre trouvé."}</div>}</div>
     {open&&<div className="modal-backdrop"><form className="modal" onSubmit={add}><div className="modal-head"><h2>Nouveau membre</h2><button type="button" className="icon-btn" onClick={()=>setOpen(false)}>×</button></div>
       <div className="form-grid">{[["first_name","Prénom"],["last_name","Nom"],["email","E-mail"],["phone","Téléphone"],["locality","Localité"],["function_name","Fonction"]].map(([k,l])=><label key={k}>{l}<input required={k==="first_name"||k==="last_name"} value={form[k as keyof typeof form]} onChange={e=>setForm({...form,[k]:e.target.value})}/></label>)}</div>
       <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setOpen(false)}>Annuler</button><button className="primary">Enregistrer</button></div>
@@ -141,11 +156,12 @@ export default function Members() {
       <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setImpOpen(false)}>Fermer</button><button type="button" className="primary" disabled={!imp?.rows.length} onClick={confirmImport}>Ajouter {imp?.rows.length||0} membre(s)</button></div>
     </div></div>}
     {detail&&<div className="modal-backdrop" onClick={()=>setDetail(null)}><div className="modal" style={{width:"min(760px,100%)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-      <div className="modal-head"><div><h2 style={{margin:0}}>{detail.first_name} {detail.last_name}</h2><div style={{marginTop:6,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><span className="muted">N° {detail.member_number}</span><span className={`badge ${detail.status}`}>{detail.status}</span></div></div><button type="button" className="icon-btn" onClick={()=>setDetail(null)}>×</button></div>
+      <div className="modal-head"><div><h2 style={{margin:0}}>{detail.first_name} {detail.last_name}</h2><div style={{marginTop:6,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><span className="muted">N° {detail.member_number}</span><span className={`badge ${detail.status}`}>{detail.status==="active"?"Actif":"Ancien membre"}</span></div></div><button type="button" className="icon-btn" onClick={()=>setDetail(null)}>×</button></div>
 
+      {detail.status==="inactive"&&<div className="error-box" style={{marginBottom:14,background:"#fff8e6",borderColor:"#f5d78a",color:"#8a5a00"}}>Ancien membre : masqué, non compté dans les statistiques, les relances ni les listes de présence. Son historique est conservé.</div>}
       {editing?(<form onSubmit={saveEdit}>
         <div className="form-grid">{([["first_name","Prénom",true],["last_name","Nom",true],["gender","Sexe (M ou F)",false],["birth_date","Date de naissance",false],["phone","Téléphone",false],["email","E-mail",false],["locality","Localité",false],["function_name","Fonction",false]] as [keyof EditForm,string,boolean][]).map(([k,l,req])=><label key={k}>{l}<input required={req} type={k==="birth_date"?"date":k==="email"?"email":"text"} value={edit[k]} onChange={e=>setEdit({...edit,[k]:e.target.value})}/></label>)}
-          <label>Statut<select value={edit.status} onChange={e=>setEdit({...edit,status:e.target.value})}><option value="active">active</option><option value="inactive">inactive</option></select></label>
+          <label>Statut<select value={edit.status} onChange={e=>setEdit({...edit,status:e.target.value})}><option value="active">Actif</option><option value="inactive">Ancien membre (masqué)</option></select></label>
           <label>Notes<textarea rows={3} value={edit.notes} onChange={e=>setEdit({...edit,notes:e.target.value})}/></label>
         </div>
         <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setEditing(false)}>Annuler</button><button className="primary">Enregistrer les modifications</button></div>
@@ -170,6 +186,7 @@ export default function Members() {
         {detail.email&&<a style={linkBtn} href={`mailto:${detail.email}`}>E-mail</a>}
       </div>}
 
+      {detail.status==="active"&&<>
       <h3 style={{margin:"22px 0 10px"}}>Participation</h3>
       {statsErr&&<div className="error-box">Historique indisponible. Recharge la page.</div>}
       {!statsErr&&!history&&<p className="muted">Chargement de l'historique…</p>}
@@ -186,8 +203,9 @@ export default function Members() {
         {!history.list.length&&<div className="empty">Aucun appel effectué pour le moment.</div>}
         {history.list.length>0&&<div style={{maxHeight:280,overflowY:"auto",border:"1px solid #e6e8ec",borderRadius:12}}><table><thead><tr><th>Date</th><th>Activité</th><th>Type</th><th>Statut</th></tr></thead><tbody>{history.list.map(x=><tr key={x.id}><td>{fmtDate(x.start)}</td><td>{x.name}</td><td><span className="badge">{x.typeName}</span></td><td style={{fontWeight:700,color:stColor[x.status]||"#172033"}}>{x.status}</td></tr>)}</tbody></table></div>}
       </>}
+      </>}
 
-      <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setDetail(null)}>Fermer</button><button type="button" className="primary" onClick={()=>startEdit(detail)}>Modifier</button></div>
+      <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setDetail(null)}>Fermer</button><button type="button" className="secondary" onClick={()=>setStatus(detail,detail.status==="active"?"inactive":"active")}>{detail.status==="active"?"Masquer (ancien membre)":"Réactiver"}</button><button type="button" className="primary" onClick={()=>startEdit(detail)}>Modifier</button></div>
       </>)}
     </div></div>}
   </>;
