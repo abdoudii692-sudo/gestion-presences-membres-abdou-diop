@@ -11,6 +11,7 @@ import { TYPE_ORDER } from "../lib/stats";
 // Statut automatique : une activité passe en "terminée" 5 h après sa fin
 // (ou 5 h après son début si aucune heure de fin n'est renseignée).
 const AUTO_CLOSE_HOURS = 5;
+const PUBLIC_SITE_URL = "https://gestion-presences-membres-abdou-diop.netlify.app";
 const closeTime = (start: string, end: string | null) => new Date(end || start).getTime() + AUTO_CLOSE_HOURS * 3600 * 1000;
 const effectiveStatus = (a: ActivityType) =>
   a.status === "annulée" ? "annulée"
@@ -30,7 +31,10 @@ export default function Activities({ canDelete = false }: { canDelete?: boolean 
   const [form,setForm]=useState(empty);
   useEffect(()=>{supabase.from("activity_types").select("id,name").then(({data})=>setTypes(((data||[]) as {id:string;name:string}[]).sort((a,b)=>TYPE_ORDER.indexOf(a.name)-TYPE_ORDER.indexOf(b.name))));},[]);
   const typeName=(id:string|null)=>types.find(t=>t.id===id)?.name||"—";
-  const qrLink=(a:ActivityType)=>`${window.location.origin}/checkin/${a.qr_token}`;
+  // Le QR doit toujours pointer vers le site en ligne : « localhost » ou une adresse du réseau local
+  // ne s'ouvre pas sur le téléphone des membres.
+  const siteUrl=/^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(window.location.hostname)?PUBLIC_SITE_URL:window.location.origin;
+  const qrLink=(a:ActivityType)=>`${siteUrl}/checkin/${a.qr_token}`;
 
   async function load(){
     await supabase.rpc("generate_recurring_activities"); // crée les activités récurrentes des 4 prochaines semaines
@@ -102,7 +106,7 @@ export default function Activities({ canDelete = false }: { canDelete?: boolean 
       <p className="muted" style={{margin:"12px 0 0"}}>Le statut est automatique (prévue, en cours, terminée).{limit&&!isNaN(limit.getTime())?` Cette activité passera en « terminée » le ${limit.toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"})}, ${AUTO_CLOSE_HOURS} h après sa fin (ou après son début si aucune fin n'est indiquée).`:""}</p>
       <div className="modal-actions"><button type="button" className="secondary" onClick={closeForm}>Annuler</button><button className="primary">{editId?"Enregistrer les modifications":"Enregistrer"}</button></div>
     </form></div>}
-    {qr&&<div className="modal-backdrop" onClick={()=>setQr(null)}><div className="modal" style={{textAlign:"center",width:"min(420px,100%)"}} onClick={e=>e.stopPropagation()}><div className="modal-head"><h2>{qr.name}</h2><button type="button" className="icon-btn" onClick={()=>setQr(null)}>×</button></div><div style={{background:"#fff",padding:16,display:"inline-block",borderRadius:12,border:"1px solid #e6e8ec"}}><QRCodeSVG value={qrLink(qr)} size={260} level="M"/></div><p className="muted">Les membres scannent ce code pour se marquer présents, de 30 minutes avant le début jusqu'à la fin.</p><button type="button" className="secondary full" onClick={()=>navigator.clipboard.writeText(qrLink(qr)).then(()=>alert("Lien copié"))}>Copier le lien</button></div></div>}
+    {qr&&<div className="modal-backdrop" onClick={()=>setQr(null)}><div className="modal" style={{textAlign:"center",width:"min(420px,100%)"}} onClick={e=>e.stopPropagation()}><div className="modal-head"><h2>{qr.name}</h2><button type="button" className="icon-btn" onClick={()=>setQr(null)}>×</button></div><div style={{background:"#fff",padding:16,display:"inline-block",borderRadius:12,border:"1px solid #e6e8ec"}}><QRCodeSVG value={qrLink(qr)} size={260} level="M"/></div><p className="muted">Les membres scannent ce code pour se marquer présents, de 30 minutes avant le début jusqu'à la fin.</p><p style={{fontSize:12,wordBreak:"break-all",color:"#667085",margin:"0 0 12px"}}>{qrLink(qr)}</p><button type="button" className="secondary full" onClick={()=>navigator.clipboard.writeText(qrLink(qr)).then(()=>alert("Lien copié"))}>Copier le lien</button></div></div>}
     {recurOpen&&<RecurringActivities types={types} onClose={()=>setRecurOpen(false)} onChanged={load}/>}
   </>;
 }
