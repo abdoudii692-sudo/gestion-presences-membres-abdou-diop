@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Pencil, Plus, QrCode, Repeat, Trash2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "../lib/supabase";
@@ -23,6 +24,7 @@ export default function Activities({ canDelete = false }: { canDelete?: boolean 
   const [qr,setQr]=useState<ActivityType|null>(null);
   const [editId,setEditId]=useState<string|null>(null);
   const [recurOpen,setRecurOpen]=useState(false);
+  const [tab,setTab]=useState<"all"|"today"|"upcoming"|"past">("all");
   const [types,setTypes]=useState<{id:string;name:string}[]>([]);
   const empty={name:"",location:"",start_datetime:"",end_datetime:"",status:"prévue",cancelled:false,activity_type_id:""};
   const [form,setForm]=useState(empty);
@@ -62,10 +64,38 @@ export default function Activities({ canDelete = false }: { canDelete?: boolean 
   }
   async function remove(id:string){if(confirm("Supprimer cette activité ?")){await supabase.from("activities").delete().eq("id",id);load();}}
 
+  // ----- Activités du jour et filtres -----
+  const dayStart=new Date();dayStart.setHours(0,0,0,0);
+  const dayEnd=new Date(dayStart.getTime()+24*3600*1000);
+  const at=(a:ActivityType)=>new Date(a.start_datetime).getTime();
+  const todayItems=items.filter(a=>at(a)>=dayStart.getTime()&&at(a)<dayEnd.getTime()).sort((a,b)=>at(a)-at(b));
+  const shown=items.filter(a=>tab==="today"?(at(a)>=dayStart.getTime()&&at(a)<dayEnd.getTime()):tab==="upcoming"?at(a)>=dayEnd.getTime():tab==="past"?at(a)<dayStart.getTime():true);
+  const tabs:[typeof tab,string][]=[["all","Toutes"],["today","Aujourd'hui"],["upcoming","À venir"],["past","Passées"]];
+
   const limit=form.start_datetime?new Date(closeTime(new Date(form.start_datetime).toISOString(),form.end_datetime?new Date(form.end_datetime).toISOString():null)):null;
 
   return <><PageHeader title="Activités" description="Créer et gérer les activités de l'organisation." action={<div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="secondary" onClick={()=>setRecurOpen(true)}><Repeat size={18}/> Activités récurrentes</button><button className="primary" onClick={openNew}><Plus size={18}/> Nouvelle activité</button></div>}/>
-    <div className="panel table-wrap"><table><thead><tr><th>Nom</th><th>Type</th><th>Lieu</th><th>Date</th><th>Statut</th><th>QR</th><th>Actions</th></tr></thead><tbody>{items.map(a=><tr key={a.id}><td>{a.name}</td><td><span className="badge">{typeName(a.activity_type_id)}</span></td><td>{a.location||"—"}</td><td>{new Date(a.start_datetime).toLocaleString("fr-FR")}</td><td><span className="badge">{effectiveStatus(a)}</span></td><td><button className="icon-btn" title="Afficher le QR code" onClick={()=>setQr(a)}><QrCode size={17}/></button></td><td><button className="icon-btn" title="Modifier" onClick={()=>openEdit(a)}><Pencil size={17}/></button>{canDelete&&<button className="icon-btn danger" title="Supprimer" onClick={()=>remove(a.id)}><Trash2 size={17}/></button>}</td></tr>)}</tbody></table>{!items.length&&<div className="empty">Aucune activité.</div>}</div>
+    <div className="panel">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8,flexWrap:"wrap",marginBottom:10}}>
+        <h2 style={{margin:0,fontSize:17}}>Activités du jour</h2>
+        <span className="muted" style={{textTransform:"capitalize"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</span>
+      </div>
+      {!todayItems.length&&<div className="empty" style={{padding:"18px 0"}}>Aucune activité aujourd'hui.</div>}
+      {todayItems.map(a=>{const st=effectiveStatus(a);return <div className="att-row" key={a.id} style={{padding:"11px 0"}}>
+        <div style={{display:"flex",gap:14,alignItems:"center",minWidth:0}}>
+          <div style={{fontWeight:800,fontSize:18,minWidth:56}}>{new Date(a.start_datetime).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+          <div style={{minWidth:0}}><div className="att-name">{a.name}</div><div className="muted" style={{fontSize:13}}>{typeName(a.activity_type_id)}{a.location?` · ${a.location}`:""}</div></div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+          <span className="badge">{st}</span>
+          {st!=="annulée"&&<button type="button" className="secondary" onClick={()=>setQr(a)}><QrCode size={16}/> QR</button>}
+          {st!=="annulée"&&<Link to="/attendance" className="primary" style={{textDecoration:"none"}}>Faire l'appel</Link>}
+        </div>
+      </div>;})}
+    </div>
+
+    <div className="type-tabs">{tabs.map(([k,l])=><button type="button" key={k} className={`type-tab${tab===k?" on":""}`} onClick={()=>setTab(k)}>{l}</button>)}</div>
+    <div className="panel table-wrap"><table><thead><tr><th>Nom</th><th>Type</th><th>Lieu</th><th>Date</th><th>Statut</th><th>QR</th><th>Actions</th></tr></thead><tbody>{shown.map(a=><tr key={a.id}><td>{a.name}</td><td><span className="badge">{typeName(a.activity_type_id)}</span></td><td>{a.location||"—"}</td><td>{new Date(a.start_datetime).toLocaleString("fr-FR")}</td><td><span className="badge">{effectiveStatus(a)}</span></td><td><button className="icon-btn" title="Afficher le QR code" onClick={()=>setQr(a)}><QrCode size={17}/></button></td><td><button className="icon-btn" title="Modifier" onClick={()=>openEdit(a)}><Pencil size={17}/></button>{canDelete&&<button className="icon-btn danger" title="Supprimer" onClick={()=>remove(a.id)}><Trash2 size={17}/></button>}</td></tr>)}</tbody></table>{!shown.length&&<div className="empty">Aucune activité.</div>}</div>
     {open&&<div className="modal-backdrop"><form className="modal" onSubmit={save}><div className="modal-head"><h2>{editId?"Modifier l'activité":"Nouvelle activité"}</h2><button type="button" className="icon-btn" onClick={closeForm}>×</button></div>
       <div className="form-grid"><label>Type d'activité<select required value={form.activity_type_id} onChange={e=>{const id=e.target.value;setForm({...form,activity_type_id:id,name:form.name||types.find(t=>t.id===id)?.name||""})}}><option value="">— Choisir —</option>{types.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><label>Nom<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Lieu<input value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label>Date/heure de début<input required type="datetime-local" value={form.start_datetime} onChange={e=>setForm({...form,start_datetime:e.target.value})}/></label><label>Date/heure de fin<input type="datetime-local" value={form.end_datetime} onChange={e=>setForm({...form,end_datetime:e.target.value})}/></label>{editId&&<label style={{display:"flex",alignItems:"center",gap:8}}><input type="checkbox" style={{width:"auto"}} checked={form.cancelled} onChange={e=>setForm({...form,cancelled:e.target.checked})}/> Activité annulée</label>}</div>
       <p className="muted" style={{margin:"12px 0 0"}}>Le statut est automatique (prévue, en cours, terminée).{limit&&!isNaN(limit.getTime())?` Cette activité passera en « terminée » le ${limit.toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"})}, ${AUTO_CLOSE_HOURS} h après sa fin (ou après son début si aucune fin n'est indiquée).`:""}</p>
