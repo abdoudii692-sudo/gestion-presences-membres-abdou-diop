@@ -319,3 +319,4 @@ where email = 'abdoudii692@gmail.com';
 -- Vérification : doit afficher 1 ligne avec role = admin
 select id, email, role, is_active from public.profiles
 where email = 'abdoudii692@gmail.com';
+
