@@ -72,7 +72,19 @@ export default function Exports() {
       "Activité": a.name, "Description": a.description ?? "", "Lieu": a.location ?? "",
       "Date de début": dateText(a.start_datetime), "Date de fin": dateText(a.end_datetime), "Statut": a.status,
     }));
-    return filteredAttendance.map(p => ({
+    // Tri : par activité (récente d'abord), puis par ordre de scan (heure d'arrivée croissante)
+    const sorted = [...filteredAttendance].sort((a, b) => {
+      const da = a.activities?.start_datetime ?? "", db = b.activities?.start_datetime ?? "";
+      if (da !== db) return db.localeCompare(da);
+      const ta = a.check_in_at, tb = b.check_in_at;
+      if (ta && tb) return ta.localeCompare(tb);
+      if (ta) return -1;
+      if (tb) return 1;
+      return (a.members?.last_name ?? "").localeCompare(b.members?.last_name ?? "", "fr");
+    });
+    const counters: Record<string, number> = {};
+    return sorted.map(p => ({
+      "Ordre": p.check_in_at ? (counters[p.activities?.start_datetime ?? ""] = (counters[p.activities?.start_datetime ?? ""] ?? 0) + 1) : "",
       "Activité": p.activities?.name ?? "Activité supprimée", "Date activité": dateText(p.activities?.start_datetime),
       "N° membre": p.members?.member_number ?? "", "Prénom": p.members?.first_name ?? "",
       "Nom": p.members?.last_name ?? "", "Téléphone": p.members?.phone ?? "",
