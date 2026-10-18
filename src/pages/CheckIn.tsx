@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CheckCircle2, Search } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import OrgHeader from "../components/OrgHeader";
 
 type State = "ok" | "early" | "late" | "cancelled";
 type Info = { found: boolean; name?: string; start?: string; state?: State };
@@ -9,7 +10,7 @@ type MemberName = { id: string; first_name: string; last_name: string };
 
 const CLOSED_MESSAGE: Record<string, string> = {
   early: "Le pointage n'est pas encore ouvert. Reviens 30 minutes avant le début.",
-  late: "Le pointage est fermé pour cette activité.",
+  late: "Le pointage est fermé : cette activité est terminée.",
   cancelled: "Cette activité est annulée.",
 };
 
@@ -116,9 +117,9 @@ export default function CheckIn() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <div className="brand-mark large">MJ</div>
+        <img className="login-logo" src="/logo.png" alt="EVEIL" />
         <h1>Pointage de présence</h1>
-        <p>Moustarchidine Junior</p>
+        <OrgHeader />
 
         {booting && <p role="status">Chargement…</p>}
 

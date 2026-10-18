@@ -64,7 +64,10 @@ h1, h2, h3 { letter-spacing: -.01em; }
     linear-gradient(180deg, #0c4535 0%, #072d22 100%);
   border-right: 1px solid rgba(255, 255, 255, .06);
 }
-.brand { display: flex; align-items: center; gap: 12px; padding: 4px 8px 24px; }
+.brand { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 4px 8px 22px; text-align: center; }
+.brand .mobile-only { position: absolute; top: -4px; right: -4px; color: #d5e3dc; }
+.brand-logo { width: 164px; height: auto; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+.login-logo { display: block; width: min(250px, 78%); height: auto; margin: 0 auto 18px; border-radius: 16px; box-shadow: 0 8px 22px rgba(0, 0, 0, .28); }
 .brand strong, .brand small { display: block; }
 .brand strong { font-size: 14.5px; font-weight: 700; color: #fff; line-height: 1.25; }
 .brand small { font-size: 11.5px; color: #a9c2b7; margin-top: 3px; }

@@ -98,7 +98,7 @@ export default function Login() {
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={submit}>
-        <div className="brand-mark large">MJ</div>
+        <img className="login-logo" src="/logo.png" alt="EVEIL" />
 
                 <h1>Espace membres</h1>
         <p style={{ margin: "8px 0 6px" }}>Moustarchidine Junior</p>
@@ -127,7 +127,7 @@ export default function Login() {
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
             required
-            placeholder="ex. admin143" autoCapitalize="none" autoCorrect="off"
+            placeholder="ex. votre email" autoCapitalize="none" autoCorrect="off"
           />
         </div>
 
