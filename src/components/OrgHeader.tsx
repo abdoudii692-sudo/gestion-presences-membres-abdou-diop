@@ -10,7 +10,7 @@ export default function OrgHeader() {
     <>
       <p style={{ margin: "8px 0 6px" }}>{b.organization_name}</p>
       {lines.length > 0 && (
-        <div style={{ textAlign: "center", margin: "0 0 6px", fontSize: 13, fontWeight: 600, lineHeight: 1.65, color: "#0e5a42" }}>
+        <div style={{ textAlign: "center", margin: "0 0 6px", fontSize: 13, fontWeight: 600, lineHeight: 1.65, color: "var(--brand)" }}>
           {lines.map((line, i) => (
             <div key={i}>{line}</div>
           ))}
