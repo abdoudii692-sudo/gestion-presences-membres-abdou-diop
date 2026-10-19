@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader";
 
 type Act = { id: string; name: string; start_datetime: string; status: string };
 type Kind = "ok" | "already" | "error";
-type Result = { kind: Kind; name?: string; message: string; at: Date };
+type Result = { kind: Kind; name?: string; message: string; activity?: string; at: Date };
 
 const PREFIX = "MJM:";
 const STYLE: Record<Kind, { bg: string; border: string; color: string }> = {
@@ -56,6 +56,8 @@ export default function Scan() {
   const lastScanRef = useRef({ token: "", at: 0 });
   const activityRef = useRef("");
   activityRef.current = activityId;
+  const actsRef = useRef<Act[]>([]);
+  actsRef.current = acts;
 
   // Activités proposées : de hier à dans 48 h, hors activités annulées
   useEffect(() => {
@@ -92,7 +94,8 @@ export default function Scan() {
   }, [activityId, refreshCount]);
 
   const push = useCallback((kind: Kind, message: string, name?: string) => {
-    setResults((prev) => [{ kind, message, name, at: new Date() }, ...prev].slice(0, 8));
+    const activity = actsRef.current.find((a) => a.id === activityRef.current)?.name;
+    setResults((prev) => [{ kind, message, name, activity, at: new Date() }, ...prev].slice(0, 8));
   }, []);
 
   const handleToken = useCallback(
@@ -255,7 +258,16 @@ export default function Scan() {
             {current.kind === "already" && <AlertTriangle size={44} />}
             {current.kind === "error" && <XCircle size={44} />}
             {current.name && <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6 }}>{current.name}</div>}
-            <div style={{ fontWeight: 700, marginTop: 2 }}>{current.message}</div>
+            {current.kind === "ok" && (
+              <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: ".08em", marginTop: 2 }}>PRÉSENT</div>
+            )}
+            {current.kind === "already" && (
+              <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: ".06em", marginTop: 2 }}>DÉJÀ POINTÉ</div>
+            )}
+            {current.kind === "error" && <div style={{ fontWeight: 700, marginTop: 2 }}>{current.message}</div>}
+            {current.kind !== "error" && current.activity && (
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 6, opacity: 0.85 }}>{current.activity}</div>
+            )}
           </div>
         )}
       </div>
@@ -266,7 +278,7 @@ export default function Scan() {
           {results.map((r, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: i ? "1px solid #edf1f7" : 0 }}>
               <span style={{ color: STYLE[r.kind].color, fontWeight: 700 }}>
-                {r.kind === "ok" ? "✓" : r.kind === "already" ? "•" : "✗"} {r.name || r.message}
+                {r.kind === "ok" ? "✓" : r.kind === "already" ? "•" : "✗"} {r.name ? `${r.name} — ${r.kind === "ok" ? "présent" : r.kind === "already" ? "déjà pointé" : r.message}` : r.message}
               </span>
               <span className="muted" style={{ fontSize: 13 }}>{r.at.toLocaleTimeString("fr-FR")}</span>
             </div>
