@@ -6,6 +6,8 @@ import type { Session } from "@supabase/supabase-js";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import CheckIn from "./pages/CheckIn";
+import MemberCard from "./pages/MemberCard";
+import Scan from "./pages/Scan";
 
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -46,6 +48,7 @@ function AppRoutes({ session }: { session: Session | null }) {
         <Route path="/users" element={<Protected session={session}><Users /></Protected>} />
         <Route path="/audit-logs" element={<Protected session={session}><AuditLogs /></Protected>} />
         <Route path="/settings" element={<Protected session={session}><Settings /></Protected>} />
+        <Route path="/scan" element={<Protected session={session}><Scan /></Protected>} />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
@@ -145,6 +148,7 @@ export default function App() {
       />
 
       <Route path="/checkin/:token" element={<CheckIn />} />
+      <Route path="/card/:token" element={<MemberCard />} />
 
       <Route
         path="/login"

@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Activity, BarChart3, ClipboardCheck, FileDown, LayoutDashboard,
-  LogIn, LogOut, UserX, Menu, Settings, Shield, Users, UserCog, X
+  LogIn, LogOut, ScanLine, UserX, Menu, Settings, Shield, Users, UserCog, X
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { Session } from "@supabase/supabase-js";
@@ -17,6 +17,7 @@ const publicLinks = [
 
 // Réservé aux utilisateurs connectés
 const privateLinks = [
+  ["/scan", "Scanner l'entrée", ScanLine],
   ["/members", "Membres", Users],
   ["/exports", "Exports", FileDown],
   ["/users", "Utilisateurs", UserCog],

@@ -1,10 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { MessageCircle, Phone, Plus, Search, Trash2, UserCheck, UserRoundPen, UserX, Upload } from "lucide-react";
+import { MessageCircle, Phone, Plus, QrCode, Search, Trash2, UserCheck, UserRoundPen, UserX, Upload } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import * as XLSX from "xlsx";
 import { supabase } from "../lib/supabase";
 import PageHeader from "../components/PageHeader";
 import type { Member } from "../types";
 import { fmtDate, GOUDI, loadStats, type StatsData } from "../lib/stats";
+import { siteUrl } from "../lib/site";
 
 export default function Members() {
   const [members,setMembers]=useState<Member[]>([]);
@@ -21,6 +23,7 @@ export default function Members() {
   const [own,setOwn]=useState<Record<string,Own>|null>(null);
   type EditForm={first_name:string;last_name:string;gender:string;birth_date:string;phone:string;email:string;locality:string;function_name:string;status:string;notes:string};
   const [editing,setEditing]=useState(false);
+  const [cardOpen,setCardOpen]=useState(false);
   const [edit,setEdit]=useState<EditForm>({first_name:"",last_name:"",gender:"",birth_date:"",phone:"",email:"",locality:"",function_name:"",status:"active",notes:""});
   useEffect(()=>{loadStats().then(setStats).catch(()=>setStatsErr(true));},[]);
 
@@ -45,6 +48,15 @@ export default function Members() {
     if(error){alert("Impossible de modifier le membre : "+error.message);return;}
     if(!data||!data.length){alert("Modification refusée : seuls les administrateurs et les responsables peuvent modifier un membre.");return;}
     setDetail(data[0] as Member);setEditing(false);load();
+  }
+
+  const tokenOf=(m:Member)=>(m as Member&{qr_token?:string|null}).qr_token||null;
+  async function regenerateCard(m:Member){
+    if(!confirm(`Générer une nouvelle carte pour ${m.first_name} ${m.last_name} ?\n\nL'ancien QR code et l'ancien lien ne fonctionneront plus.`))return;
+    const {data,error}=await supabase.rpc("regenerate_member_card",{p_member_id:m.id});
+    if(error){alert("Impossible de régénérer la carte : "+error.message);return;}
+    setDetail({...m,qr_token:data as string} as Member);
+    load();
   }
 
   const history=useMemo(()=>{
@@ -205,8 +217,29 @@ export default function Members() {
       </>}
       </>}
 
-      <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setDetail(null)}>Fermer</button><button type="button" className="secondary" onClick={()=>setStatus(detail,detail.status==="active"?"inactive":"active")}>{detail.status==="active"?"Masquer (ancien membre)":"Réactiver"}</button><button type="button" className="primary" onClick={()=>startEdit(detail)}>Modifier</button></div>
+      <div className="modal-actions" style={{flexWrap:"wrap"}}><button type="button" className="secondary" onClick={()=>setDetail(null)}>Fermer</button><button type="button" className="secondary" onClick={()=>setStatus(detail,detail.status==="active"?"inactive":"active")}>{detail.status==="active"?"Masquer (ancien membre)":"Réactiver"}</button><button type="button" className="secondary" onClick={()=>setCardOpen(true)}><QrCode size={16}/> Carte de membre</button><button type="button" className="primary" onClick={()=>startEdit(detail)}>Modifier</button></div>
       </>)}
     </div></div>}
+    {detail&&cardOpen&&(()=>{
+      const token=tokenOf(detail);
+      const link=`${siteUrl()}/card/${token}`;
+      const msg=`Salam ${detail.first_name}, voici ta carte de membre : ${link}\nPrésente le QR code à l'entrée.`;
+      return <div className="modal-backdrop" onClick={()=>setCardOpen(false)}><div className="modal print-area" style={{width:"min(420px,100%)",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-head no-print"><h2>Carte de membre</h2><button type="button" className="icon-btn" onClick={()=>setCardOpen(false)}>×</button></div>
+        {!token?<div className="error-box">Carte indisponible : lancez d'abord member_cards.sql dans Supabase.</div>:<>
+          <img className="login-logo" src="/logo.png" alt="EVEIL" style={{width:170}}/>
+          <div style={{fontFamily:"var(--font-title)",fontSize:22,fontWeight:700}}>{detail.first_name} {detail.last_name}</div>
+          <div className="muted" style={{fontWeight:700,marginBottom:12}}>{detail.member_number}</div>
+          <div style={{background:"#fff",padding:14,display:"inline-block",borderRadius:14,border:"1px solid #e1e7f0"}}><QRCodeSVG value={`MJM:${token}`} size={220} level="M"/></div>
+          <p className="muted no-print" style={{fontSize:12,wordBreak:"break-all",margin:"12px 0"}}>{link}</p>
+          <div className="no-print" style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+            {detail.phone&&<a className="primary" style={{textDecoration:"none"}} href={`${waLink(detail.phone)}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer"><MessageCircle size={16}/> Envoyer par WhatsApp</a>}
+            <button type="button" className="secondary" onClick={()=>navigator.clipboard.writeText(link).then(()=>alert("Lien copié"))}>Copier le lien</button>
+            <button type="button" className="secondary" onClick={()=>window.print()}>Imprimer</button>
+          </div>
+          <button type="button" className="forgot-password no-print" style={{marginTop:14}} onClick={()=>regenerateCard(detail)}>Carte perdue ? Générer un nouveau QR</button>
+        </>}
+      </div></div>;
+    })()}
   </>;
 }

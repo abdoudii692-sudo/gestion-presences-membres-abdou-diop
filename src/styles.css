@@ -351,3 +351,13 @@ tbody tr:last-child td { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Impression de la carte de membre ---------- */
+@media print {
+  .sidebar, .topbar, .overlay { display: none !important; }
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: fixed !important; left: 50%; top: 24px; transform: translateX(-50%); width: 340px !important;
+    box-shadow: none !important; border: 1px solid #000; animation: none !important; }
+  .no-print { display: none !important; }
+}
