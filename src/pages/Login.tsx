@@ -109,12 +109,11 @@ export default function Login() {
             fontSize: 13,
             fontWeight: 600,
             lineHeight: 1.65,
-            color: "#0e5a42",
+            color: "#066043",
           }}
         >
-          <div>Section NGOUFAT 1</div>
-          <div>Conseil THIOLOM 2</div>
-          <div>Comité LOUGA</div>
+          <div>Conseil CONSEIL UGB </div>
+          <div>Comité INTER-UNIVERSITAIRE </div>
         </div>
 
         <label htmlFor="login-email">Identifiant</label>
