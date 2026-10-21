@@ -16,6 +16,25 @@ const STYLE: Record<Kind, { bg: string; border: string; color: string }> = {
   error: { bg: "#fef3f2", border: "#fecdca", color: "#b42318" },
 };
 
+const VOICE_KEY = "mj_scan_voice";
+
+/** Lit le texte à haute voix avec la voix française de l'appareil. */
+function speak(text: string) {
+  try {
+    if (!("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "fr-FR";
+    utterance.rate = 0.95;
+    const voice = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith("fr"));
+    if (voice) utterance.voice = voice;
+    synth.speak(utterance);
+  } catch {
+    /* lecture vocale non disponible sur cet appareil */
+  }
+}
+
 function feedback(success: boolean) {
   try {
     navigator.vibrate?.(success ? 80 : [60, 40, 60]);
@@ -46,6 +65,15 @@ export default function Scan() {
   const [camError, setCamError] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [count, setCount] = useState<number | null>(null);
+  const [voiceOn, setVoiceOn] = useState(() => {
+    try {
+      return localStorage.getItem(VOICE_KEY) !== "off";
+    } catch {
+      return true;
+    }
+  });
+  const voiceRef = useRef(voiceOn);
+  voiceRef.current = voiceOn;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -119,11 +147,17 @@ export default function Scan() {
       if (error) {
         push("error", error.message);
         feedback(false);
+        if (voiceRef.current) speak("Erreur. Réessayez.");
         return;
       }
       const r = data as { ok: boolean; already?: boolean; name?: string; message: string };
       push(r.ok ? (r.already ? "already" : "ok") : "error", r.message, r.name);
       feedback(r.ok && !r.already);
+      if (voiceRef.current) {
+        if (r.ok && !r.already) speak(`${r.name}, présent`);
+        else if (r.ok) speak(`${r.name}, déjà pointé`);
+        else speak(r.name ? `${r.name}. ${r.message}` : r.message);
+      }
       if (r.ok && !r.already) void refreshCount(id);
     },
     [push, refreshCount]
@@ -162,6 +196,7 @@ export default function Scan() {
 
   async function start() {
     setCamError("");
+    if (voiceRef.current) speak("Scanner prêt");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } },
@@ -206,6 +241,27 @@ export default function Scan() {
             ))}
           </select>
         </label>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
+            <input
+              type="checkbox"
+              checked={voiceOn}
+              onChange={(e) => {
+                setVoiceOn(e.target.checked);
+                try {
+                  localStorage.setItem(VOICE_KEY, e.target.checked ? "on" : "off");
+                } catch {
+                  /* réglage non mémorisé */
+                }
+              }}
+              style={{ width: 20, height: 20, padding: 0 }}
+            />
+            Lire le nom à haute voix
+          </label>
+          <button type="button" className="secondary" style={{ minHeight: 36, padding: "6px 12px" }} onClick={() => speak("Awa Diop, présent")}>
+            Tester la voix
+          </button>
+        </div>
         {count !== null && (
           <p style={{ margin: "12px 0 0", fontWeight: 700 }}>
             Présents pour cette activité : <span style={{ color: "#18794e", fontSize: 20 }}>{count}</span>
