@@ -109,11 +109,10 @@ export default function Login() {
             fontSize: 13,
             fontWeight: 600,
             lineHeight: 1.65,
-            color: "#066043",
+            color: "#0e5a42",
           }}
         >
-          <div>Conseil CONSEIL UGB </div>
-          <div>Comité INTER-UNIVERSITAIRE </div>
+
         </div>
 
         <label htmlFor="login-email">Identifiant</label>
