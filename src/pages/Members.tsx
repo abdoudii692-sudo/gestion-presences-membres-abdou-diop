@@ -247,7 +247,7 @@ export default function Members() {
           <img className="login-logo" src="/logo.png" alt="Conseil UGB" style={{width:170}}/>
           <div style={{fontFamily:"var(--font-title)",fontSize:22,fontWeight:700}}>{detail.first_name} {detail.last_name}</div>
           <div className="muted" style={{fontWeight:700,marginBottom:12}}>{detail.member_number}</div>
-          <div style={{background:"#fff",padding:14,display:"inline-block",borderRadius:14,border:"1px solid #e1e7f0"}}><QRCodeSVG value={`MJM:${token}`} size={220} level="M"/></div>
+          <div style={{background:"#fff",padding:14,display:"inline-block",borderRadius:14,border:"1px solid #eadfda"}}><QRCodeSVG value={`MJM:${token}`} size={220} level="M"/></div>
           <p className="muted no-print" style={{fontSize:12,wordBreak:"break-all",margin:"12px 0"}}>{link}</p>
           <div className="no-print" style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
             {detail.phone&&<a className="primary" style={{textDecoration:"none"}} href={`${waLink(detail.phone)}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer"><MessageCircle size={16}/> Envoyer par WhatsApp</a>}

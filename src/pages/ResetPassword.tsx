@@ -1,7 +1,7 @@
-
 import { FormEvent, useEffect, useState } from "react";
 import { LockKeyhole, KeyRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import Footer from "../components/Footer";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -114,7 +114,7 @@ export default function ResetPassword() {
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={submit}>
-        <div className="brand-mark large">MJ</div>
+        <img className="login-logo" src="/logo.png" alt="Conseil UGB" />
 
         <h1>Nouveau mot de passe</h1>
         <p>Moustarchidine Junior</p>
@@ -190,6 +190,7 @@ export default function ResetPassword() {
         >
           Retour à la connexion
         </button>
+        <Footer />
       </form>
     </div>
   );

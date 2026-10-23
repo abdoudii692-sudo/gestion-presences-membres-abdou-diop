@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "../lib/supabase";
+import Footer from "../components/Footer";
 
 type Card = {
   found: boolean;
@@ -27,7 +28,7 @@ export default function MemberCard() {
   return (
     <div className="login-screen">
       <div className="login-card" style={{ textAlign: "center" }}>
-        <img className="login-logo" src="/logo.png" alt="EVEIL" />
+        <img className="login-logo" src="/logo.png" alt="Conseil UGB" />
         <h1>Carte de membre</h1>
         <p>Moustarchidine Junior</p>
 
@@ -46,7 +47,7 @@ export default function MemberCard() {
               </div>
               <div className="muted" style={{ fontWeight: 700, letterSpacing: ".05em" }}>{card.member_number}</div>
             </div>
-            <div style={{ background: "#fff", padding: 16, borderRadius: 16, border: "1px solid #e1e7f0", display: "inline-block" }}>
+            <div style={{ background: "#fff", padding: 16, borderRadius: 16, border: "1px solid #eadfda", display: "inline-block" }}>
               <QRCodeSVG value={`MJM:${token}`} size={240} level="M" />
             </div>
             <p className="muted" style={{ fontSize: 13, margin: "16px 0 0" }}>
@@ -54,6 +55,7 @@ export default function MemberCard() {
             </p>
           </>
         )}
+        <Footer />
       </div>
     </div>
   );

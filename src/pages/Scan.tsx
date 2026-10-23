@@ -332,7 +332,7 @@ export default function Scan() {
         <div className="panel">
           <h2 style={{ margin: "0 0 8px", fontSize: 17 }}>Derniers scans</h2>
           {results.map((r, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: i ? "1px solid #edf1f7" : 0 }}>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: i ? "1px solid #f3ece8" : 0 }}>
               <span style={{ color: STYLE[r.kind].color, fontWeight: 700 }}>
                 {r.kind === "ok" ? "✓" : r.kind === "already" ? "•" : "✗"} {r.name ? `${r.name} — ${r.kind === "ok" ? "présent" : r.kind === "already" ? "déjà pointé" : r.message}` : r.message}
               </span>

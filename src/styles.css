@@ -254,7 +254,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .login-screen {
   min-height: 100vh; display: grid; place-items: center; padding: 20px;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84'%3E%3Cg fill='none' stroke='%23f5b942' stroke-opacity='.17' stroke-width='1'%3E%3Crect x='24' y='24' width='36' height='36'/%3E%3Crect x='24' y='24' width='36' height='36' transform='rotate(45 42 42)'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84'%3E%3Cg fill='none' stroke='%23d9a066' stroke-opacity='.17' stroke-width='1'%3E%3Crect x='24' y='24' width='36' height='36'/%3E%3Crect x='24' y='24' width='36' height='36' transform='rotate(45 42 42)'/%3E%3C/g%3E%3C/svg%3E"),
     radial-gradient(90% 70% at 15% 0%, rgba(217, 160, 102, .12), transparent 60%),
     linear-gradient(160deg, #3a2420 0%, #171110 100%);
 }
