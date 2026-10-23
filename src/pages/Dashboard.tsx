@@ -39,7 +39,7 @@ function Box({ title, link, children }: { title: string; link?: { to: string; la
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
         <h2 style={{ margin: 0, fontSize: 17 }}>{title}</h2>
         {link && (
-          <Link to={link.to} style={{ fontSize: 13, fontWeight: 600, color: "#175cd3", textDecoration: "none" }}>
+          <Link to={link.to} style={{ fontSize: 13, fontWeight: 600, color: "#a2443a", textDecoration: "none" }}>
             {link.label} →
           </Link>
         )}

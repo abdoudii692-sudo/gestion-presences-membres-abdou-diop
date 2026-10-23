@@ -99,7 +99,7 @@ export default function Login() {
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={submit}>
-        <img className="login-logo" src="/logo.png" alt="EVEIL" />
+        <img className="login-logo" src="/logo.png" alt="Conseil UGB" />
 
                 <h1>Espace membres</h1>
         <p style={{ margin: "8px 0 6px" }}>Moustarchidine Junior</p>
@@ -110,12 +110,12 @@ export default function Login() {
             fontSize: 13,
             fontWeight: 600,
             lineHeight: 1.65,
-            color: "#0e5a42",
+            color: "#a2443a",
           }}
         >
-          <div>ommission Administrative</div>
-          <div>Conseil UGB</div>
-          <div>Comité INTER-UNIVERSITAIRE</div>
+          <div>Section ndiar</div>
+          <div>Conseil Ndame Lô</div>
+          <div>Comité Thiès</div>
         </div>
 
         <label htmlFor="login-email">Identifiant</label>

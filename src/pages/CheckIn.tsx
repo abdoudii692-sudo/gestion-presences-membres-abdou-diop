@@ -146,7 +146,7 @@ export default function CheckIn() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <img className="login-logo" src="/logo.png" alt="EVEIL" />
+        <img className="login-logo" src="/logo.png" alt="Conseil UGB" />
         <h1>Pointage de présence</h1>
         <OrgHeader />
 

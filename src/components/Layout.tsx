@@ -56,7 +56,7 @@ export default function Layout({ children, session }: { children: ReactNode; ses
     <div className="app-shell">
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <img className="brand-logo" src="/logo.png" alt="EVEIL" />
+          <img className="brand-logo" src="/logo.png" alt="Conseil UGB" />
           <div><strong>Gestion des Membres</strong><small>Moustarchidine Junior</small></div>
           <button className="icon-btn mobile-only" onClick={() => setOpen(false)}><X size={20}/></button>
         </div>
