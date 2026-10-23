@@ -11,6 +11,9 @@ import { siteUrl } from "../lib/site";
 export default function Members() {
   const [members,setMembers]=useState<Member[]>([]);
   const [q,setQ]=useState("");
+  type SortKey="last_name"|"first_name"|"member_number"|"created_at";
+  const [sortKey,setSortKey]=useState<SortKey>("last_name");
+  const [sortDir,setSortDir]=useState<"asc"|"desc">("asc");
   const [view,setView]=useState<"active"|"inactive"|"all">("active");
   const [open,setOpen]=useState(false);
   const [form,setForm]=useState({first_name:"",last_name:"",email:"",phone:"",locality:"",function_name:"",status:"active"});
@@ -148,13 +151,27 @@ export default function Members() {
   }
 
   const counts={active:members.filter(m=>m.status==="active").length,inactive:members.filter(m=>m.status==="inactive").length};
+  const collator=new Intl.Collator("fr",{sensitivity:"base",numeric:true});
+  const sortValue=(m:Member)=>sortKey==="last_name"?`${m.last_name} ${m.first_name}`:sortKey==="first_name"?`${m.first_name} ${m.last_name}`:sortKey==="member_number"?(m.member_number||""):(m.created_at||"");
+  const sortBy=(k:SortKey)=>{if(sortKey===k)setSortDir(d=>d==="asc"?"desc":"asc");else{setSortKey(k);setSortDir("asc");}};
+  const arrow=(k:SortKey)=>sortKey===k?(sortDir==="asc"?" ▲":" ▼"):"";
+  const thSort={cursor:"pointer",userSelect:"none"} as const;
   const filtered=members.filter(m=>(view==="all"||m.status===view)&&`${m.first_name} ${m.last_name} ${m.phone||""} ${m.email||""}`.toLowerCase().includes(q.toLowerCase()));
+  const sorted=[...filtered].sort((a,b)=>{const r=collator.compare(sortValue(a),sortValue(b));return sortDir==="asc"?r:-r;});
 
   return <><PageHeader title="Membres" description={`${counts.active} membre(s) actif(s)${counts.inactive?` · ${counts.inactive} ancien(s) membre(s) masqué(s)`:""}.`} action={<div className="att-actions"><button className="secondary" onClick={()=>{setImpOpen(true);setImp(null);setImpMsg("");}}><Upload size={18}/> Importer</button><button className="primary" onClick={()=>setOpen(true)}><Plus size={18}/> Ajouter un membre</button></div>}/>
-    <div className="toolbar"><div className="input-icon search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher…"/></div></div>
+    <div className="toolbar"><div className="input-icon search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher…"/></div>
+      <select aria-label="Trier les membres" value={`${sortKey}:${sortDir}`} onChange={e=>{const [k,d]=e.target.value.split(":");setSortKey(k as SortKey);setSortDir(d as "asc"|"desc");}}>
+        <option value="last_name:asc">Trier : Nom (A → Z)</option>
+        <option value="last_name:desc">Trier : Nom (Z → A)</option>
+        <option value="first_name:asc">Trier : Prénom (A → Z)</option>
+        <option value="first_name:desc">Trier : Prénom (Z → A)</option>
+        <option value="member_number:asc">Trier : N° de membre</option>
+        <option value="created_at:desc">Trier : Plus récents d'abord</option>
+      </select></div>
     <div className="type-tabs">{([["active",`Membres actifs (${counts.active})`],["inactive",`Anciens membres (${counts.inactive})`],["all","Tous"]] as ["active"|"inactive"|"all",string][]).map(([k,l])=><button type="button" key={k} className={`type-tab${view===k?" on":""}`} onClick={()=>setView(k)}>{l}</button>)}</div>
-    <div className="panel table-wrap"><table><thead><tr><th>N°</th><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>E-mail</th><th>Statut</th><th>Actions</th></tr></thead>
-    <tbody>{filtered.map(m=><tr key={m.id} onClick={()=>openDetail(m)} style={{cursor:"pointer",opacity:m.status==="inactive"?.6:1}} title="Voir la fiche du membre"><td>{m.member_number}</td><td>{m.first_name}</td><td>{m.last_name}</td><td>{m.phone||"—"}</td><td>{m.email||"—"}</td><td><span className={`badge ${m.status}`}>{m.status==="active"?"Actif":"Ancien membre"}</span></td><td><button className="icon-btn" title="Voir la fiche" onClick={e=>{e.stopPropagation();openDetail(m);}}><UserRoundPen size={17}/></button><button className="icon-btn" title={m.status==="active"?"Masquer (ancien membre)":"Réactiver"} onClick={e=>{e.stopPropagation();setStatus(m,m.status==="active"?"inactive":"active");}}>{m.status==="active"?<UserX size={17}/>:<UserCheck size={17}/>}</button><button className="icon-btn danger" title="Supprimer" onClick={e=>{e.stopPropagation();remove(m.id);}}><Trash2 size={17}/></button></td></tr>)}</tbody></table>{!filtered.length&&<div className="empty">{view==="inactive"&&!q?"Aucun ancien membre masqué.":"Aucun membre trouvé."}</div>}</div>
+    <div className="panel table-wrap"><table><thead><tr><th style={thSort} onClick={()=>sortBy("member_number")}>N°{arrow("member_number")}</th><th style={thSort} onClick={()=>sortBy("first_name")}>Prénom{arrow("first_name")}</th><th style={thSort} onClick={()=>sortBy("last_name")}>Nom{arrow("last_name")}</th><th>Téléphone</th><th>E-mail</th><th>Statut</th><th>Actions</th></tr></thead>
+    <tbody>{sorted.map(m=><tr key={m.id} onClick={()=>openDetail(m)} style={{cursor:"pointer",opacity:m.status==="inactive"?.6:1}} title="Voir la fiche du membre"><td>{m.member_number}</td><td>{m.first_name}</td><td>{m.last_name}</td><td>{m.phone||"—"}</td><td>{m.email||"—"}</td><td><span className={`badge ${m.status}`}>{m.status==="active"?"Actif":"Ancien membre"}</span></td><td><button className="icon-btn" title="Voir la fiche" onClick={e=>{e.stopPropagation();openDetail(m);}}><UserRoundPen size={17}/></button><button className="icon-btn" title={m.status==="active"?"Masquer (ancien membre)":"Réactiver"} onClick={e=>{e.stopPropagation();setStatus(m,m.status==="active"?"inactive":"active");}}>{m.status==="active"?<UserX size={17}/>:<UserCheck size={17}/>}</button><button className="icon-btn danger" title="Supprimer" onClick={e=>{e.stopPropagation();remove(m.id);}}><Trash2 size={17}/></button></td></tr>)}</tbody></table>{!filtered.length&&<div className="empty">{view==="inactive"&&!q?"Aucun ancien membre masqué.":"Aucun membre trouvé."}</div>}</div>
     {open&&<div className="modal-backdrop"><form className="modal" onSubmit={add}><div className="modal-head"><h2>Nouveau membre</h2><button type="button" className="icon-btn" onClick={()=>setOpen(false)}>×</button></div>
       <div className="form-grid">{[["first_name","Prénom"],["last_name","Nom"],["email","E-mail"],["phone","Téléphone"],["locality","Localité"],["function_name","Fonction"]].map(([k,l])=><label key={k}>{l}<input required={k==="first_name"||k==="last_name"} value={form[k as keyof typeof form]} onChange={e=>setForm({...form,[k]:e.target.value})}/></label>)}</div>
       <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setOpen(false)}>Annuler</button><button className="primary">Enregistrer</button></div>
@@ -227,7 +244,7 @@ export default function Members() {
       return <div className="modal-backdrop" onClick={()=>setCardOpen(false)}><div className="modal print-area" style={{width:"min(420px,100%)",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
         <div className="modal-head no-print"><h2>Carte de membre</h2><button type="button" className="icon-btn" onClick={()=>setCardOpen(false)}>×</button></div>
         {!token?<div className="error-box">Carte indisponible : lancez d'abord member_cards.sql dans Supabase.</div>:<>
-          <img className="login-logo" src="/logo.png" alt="EVEIL" style={{width:170}}/>
+          <img className="login-logo" src="/logo.png" alt="Conseil UGB" style={{width:170}}/>
           <div style={{fontFamily:"var(--font-title)",fontSize:22,fontWeight:700}}>{detail.first_name} {detail.last_name}</div>
           <div className="muted" style={{fontWeight:700,marginBottom:12}}>{detail.member_number}</div>
           <div style={{background:"#fff",padding:14,display:"inline-block",borderRadius:14,border:"1px solid #e1e7f0"}}><QRCodeSVG value={`MJM:${token}`} size={220} level="M"/></div>

@@ -8,3 +8,7 @@ export function siteUrl(): string {
   const local = /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
   return local ? PUBLIC_SITE_URL : window.location.origin;
 }
+
+
+
+
