@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { LockKeyhole, Mail, LogIn, KeyRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import Footer from "../components/Footer";
 
 // Le compte est identifié par un « identifiant » (ex. admin143).
 // En interne, Supabase exige un e-mail : on ajoute simplement un domaine fixe.
@@ -112,7 +113,9 @@ export default function Login() {
             color: "#0e5a42",
           }}
         >
-
+          <div>ommission Administrative</div>
+          <div>Conseil UGB</div>
+          <div>Comité INTER-UNIVERSITAIRE</div>
         </div>
 
         <label htmlFor="login-email">Identifiant</label>
@@ -176,7 +179,7 @@ export default function Login() {
             : "Mot de passe oublié ?"}
         </button>
 
-        
+        <Footer />
       </form>
     </div>
   );
