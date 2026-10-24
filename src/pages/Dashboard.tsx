@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CalendarCheck, ClipboardList, Percent, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, CalendarCheck, ClipboardCheck, ClipboardList, Percent, QrCode, ScanLine, TrendingUp, Users } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import PageHeader from "../components/PageHeader";
 import { fmtDate, goudiStreaks, loadStats, type StatsData } from "../lib/stats";
@@ -16,8 +16,8 @@ type Upcoming = {
 const GREEN = "#18794e";
 const RED = "#b42318";
 const ORANGE = "#b54708";
-const GRAY = "#667085";
-const LINE = "#eef0f3";
+const GRAY = "var(--muted)";
+const LINE = "var(--line-soft)";
 
 const rateColor = (r: number) => (r >= 70 ? GREEN : r >= 40 ? ORANGE : RED);
 const dateTime = (v: string) => new Date(v).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
@@ -28,7 +28,7 @@ const HOURS_3 = 3 * 3600 * 1000;
 function Bar({ value, color }: { value: number; color: string }) {
   return (
     <div style={{ height: 8, borderRadius: 99, background: "#eef2f6", overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(100, Math.max(0, value))}%`, height: "100%", background: color }} />
+      <div className="bar-fill" style={{ width: `${Math.min(100, Math.max(0, value))}%`, height: "100%", background: color }} />
     </div>
   );
 }
@@ -39,7 +39,7 @@ function Box({ title, link, children }: { title: string; link?: { to: string; la
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
         <h2 style={{ margin: 0, fontSize: 17 }}>{title}</h2>
         {link && (
-          <Link to={link.to} style={{ fontSize: 13, fontWeight: 600, color: "#a2443a", textDecoration: "none" }}>
+          <Link to={link.to} style={{ fontSize: 13, fontWeight: 600, color: "var(--brand)", textDecoration: "none" }}>
             {link.label} →
           </Link>
         )}
@@ -216,6 +216,22 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12, marginTop: 16 }}>
+        {[
+          { to: "/scan", label: "Scanner l'entrée", sub: "Pointer les membres avec leur carte QR", Icon: ScanLine },
+          { to: "/attendance", label: "Faire l'appel", sub: "Marquer les présences à la main", Icon: ClipboardCheck },
+          { to: "/members", label: "Cartes de membre", sub: "Afficher et envoyer le QR d'un membre", Icon: QrCode },
+        ].map(({ to, label, sub, Icon }) => (
+          <Link key={to} to={to} className="panel" style={{ margin: 0, display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: "inherit" }}>
+            <Icon size={30} color="var(--brand)" />
+            <div>
+              <div style={{ fontWeight: 800 }}>{label}</div>
+              <div className="muted" style={{ fontSize: 13 }}>{sub}</div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginTop: 16 }}>
         <Box title="Prochaines activités" link={{ to: "/activities", label: "Toutes les activités" }}>
           {upcoming.length === 0 && <div className="empty">Aucune activité prévue.</div>}
@@ -277,6 +293,7 @@ export default function Dashboard() {
                   >
                     <span style={{ fontSize: 11, fontWeight: 700, color: rateColor(a.rate), marginBottom: 3 }}>{a.rate}%</span>
                     <div
+                      className="chart-bar"
                       style={{
                         width: "100%",
                         maxWidth: 36,
