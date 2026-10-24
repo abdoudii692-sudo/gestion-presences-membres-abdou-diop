@@ -113,9 +113,9 @@ export default function Login() {
             color: "#a2443a",
           }}
         >
-          <div>Section ndiar</div>
-          <div>Conseil Ndame Lô</div>
-          <div>Comité Thiès</div>
+          <div>Commission Administrative</div>
+          <div>CONSEIL UGB
+          <div>Comité INTER-UNIVERSITAIRE</div>
         </div>
 
         <label htmlFor="login-email">Identifiant</label>
