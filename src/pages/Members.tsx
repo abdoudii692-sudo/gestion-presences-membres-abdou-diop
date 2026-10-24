@@ -111,7 +111,8 @@ export default function Members() {
 
   // ----- Import Excel / CSV -----
   type Imp={first_name:string;last_name:string;email:string|null;phone:string|null;gender:string|null;birth_date:string|null;locality:string|null;function_name:string|null};
-  const [imp,setImp]=useState<{rows:Imp[];dup:number;bad:number}|null>(null);
+  const [imp,setImp]=useState<{rows:Imp[];dup:number;bad:number;homonyms:number;review:Imp[]}|null>(null);
+  const [includeReview,setIncludeReview]=useState(false);
   const [impOpen,setImpOpen]=useState(false);
   const [impMsg,setImpMsg]=useState("");
   const norm=(v:unknown)=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z]/g,"");
@@ -122,28 +123,42 @@ export default function Members() {
     try{
       const wb=XLSX.read(await f.arrayBuffer(),{type:"array",cellDates:true});
       const raw=XLSX.utils.sheet_to_json<Record<string,unknown>>(wb.Sheets[wb.SheetNames[0]],{defval:""});
-      const seen=new Set(members.map(m=>`${norm(m.first_name)}|${norm(m.last_name)}`));
-      const rows:Imp[]=[];let dup=0,bad=0;
+      // Téléphone normalisé : chiffres seulement, indicatif +221 / 00221 ignoré (on garde les 9 derniers chiffres)
+      const phoneKey=(p:unknown)=>{let d=String(p??"").replace(/\D/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.length>9)d=d.slice(-9);return d.length>=7?d:null;};
+      // Pour chaque « prénom|nom » déjà connu : la liste des téléphones des membres qui le portent
+      const byName=new Map<string,(string|null)[]>();
+      members.forEach(m=>{const k=`${norm(m.first_name)}|${norm(m.last_name)}`;byName.set(k,[...(byName.get(k)||[]),phoneKey(m.phone)]);});
+      const rows:Imp[]=[],review:Imp[]=[];let dup=0,bad=0,homonyms=0;
       raw.forEach(r=>{
         const g=(k:string)=>{const key=Object.keys(r).find(c=>FIELDS[k].includes(norm(c)));return key?r[key]:"";};
         const first=String(g("first_name")).trim(),last=String(g("last_name")).trim();
         if(!first||!last){bad++;return;}
-        const id=`${norm(first)}|${norm(last)}`;
-        if(seen.has(id)){dup++;return;}
-        seen.add(id);
         const t=(k:string)=>String(g(k)).trim()||null;
-        rows.push({first_name:first,last_name:last,email:t("email"),phone:t("phone"),gender:t("gender"),birth_date:toDate(g("birth_date")),locality:t("locality"),function_name:t("function_name")});
+        const row:Imp={first_name:first,last_name:last,email:t("email"),phone:t("phone"),gender:t("gender"),birth_date:toDate(g("birth_date")),locality:t("locality"),function_name:t("function_name")};
+        const id=`${norm(first)}|${norm(last)}`;
+        const mine=phoneKey(row.phone);
+        const known=byName.get(id);
+        if(known){
+          if(mine&&known.includes(mine)){dup++;return;}          // même nom + même téléphone : déjà enregistré
+          if(mine&&known.every(k=>k!==null))homonyms++;           // même nom, téléphone différent : une autre personne
+          else{review.push(row);return;}                          // téléphone manquant : impossible de trancher
+        }
+        byName.set(id,[...(known||[]),mine]);
+        rows.push(row);
       });
-      setImp({rows,dup,bad});
+      setIncludeReview(false);
+      setImp({rows,dup,bad,homonyms,review});
     }catch{setImpMsg("Fichier illisible. Utilise un fichier .xlsx, .xls ou .csv.");}
   }
   async function confirmImport(){
-    if(!imp?.rows.length)return;
-    for(let i=0;i<imp.rows.length;i+=200){
-      const {error}=await supabase.from("members").insert(imp.rows.slice(i,i+200).map(r=>({...r,status:"active"})));
+    if(!imp)return;
+    const toAdd=[...imp.rows,...(includeReview?imp.review:[])];
+    if(!toAdd.length)return;
+    for(let i=0;i<toAdd.length;i+=200){
+      const {error}=await supabase.from("members").insert(toAdd.slice(i,i+200).map(r=>({...r,status:"active"})));
       if(error){setImpMsg("Erreur : "+error.message);return;}
     }
-    setImpMsg(`${imp.rows.length} membre(s) ajouté(s).`);setImp(null);load();
+    setImpMsg(`${toAdd.length} membre(s) ajouté(s).`);setImp(null);setIncludeReview(false);load();
   }
   function template(){
     const ws=XLSX.utils.aoa_to_sheet([["Prénom","Nom","Email","Téléphone","Sexe","Date de naissance","Localité","Fonction"],["Awa","Fall","","770000000","F","01/01/2005","Saint-Louis",""]]);
@@ -177,12 +192,17 @@ export default function Members() {
       <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setOpen(false)}>Annuler</button><button className="primary">Enregistrer</button></div>
     </form></div>}
     {impOpen&&<div className="modal-backdrop"><div className="modal"><div className="modal-head"><h2>Importer des membres</h2><button type="button" className="icon-btn" onClick={()=>setImpOpen(false)}>×</button></div>
-      <div className="import-box"><p style={{marginTop:0}}>Fichier Excel (.xlsx, .xls) ou CSV avec les colonnes : <b>Prénom, Nom</b> (obligatoires), Email, Téléphone, Sexe, Date de naissance, Localité, Fonction.</p>
+      <div className="import-box"><p style={{marginTop:0}}>Fichier Excel (.xlsx, .xls) ou CSV avec les colonnes : <b>Prénom, Nom</b> (obligatoires), Email, Téléphone, Sexe, Date de naissance, Localité, Fonction. Si deux personnes ont le même prénom et le même nom, le <b>numéro de téléphone</b> sert à les différencier.</p>
       <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{const f=e.target.files?.[0];if(f)readFile(f);}}/>
       <p style={{marginBottom:0}}><button type="button" className="secondary" onClick={template}>Télécharger le modèle</button></p></div>
-      {imp&&<div className="success-box"><b>{imp.rows.length}</b> membre(s) à ajouter · {imp.dup} doublon(s) ignoré(s) · {imp.bad} ligne(s) sans nom/prénom ignorée(s)</div>}
+      {imp&&<div className="success-box"><b>{imp.rows.length}</b> membre(s) à ajouter{imp.homonyms>0&&<> (dont <b>{imp.homonyms}</b> homonyme(s) différencié(s) par le téléphone)</>} · {imp.dup} doublon(s) ignoré(s) (même nom et même téléphone) · {imp.bad} ligne(s) sans nom/prénom ignorée(s)</div>}
+      {imp&&imp.review.length>0&&<div className="error-box" style={{background:"#fff8e6",borderColor:"#f5d78a",color:"#8a5a00",marginTop:12}}>
+        <b>{imp.review.length} homonyme(s) à vérifier</b> : même prénom et nom qu'un membre déjà enregistré, mais un téléphone manque pour savoir si c'est la même personne. Ils ne sont pas ajoutés par défaut.
+        <ul style={{margin:"8px 0",paddingLeft:18}}>{imp.review.slice(0,8).map((r,i)=><li key={i}>{r.last_name} {r.first_name} — {r.phone||"pas de numéro"}</li>)}{imp.review.length>8&&<li>… et {imp.review.length-8} autre(s)</li>}</ul>
+        <label style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,color:"inherit"}}><input type="checkbox" checked={includeReview} onChange={e=>setIncludeReview(e.target.checked)} style={{width:18,height:18,padding:0}}/> Ajouter aussi ces {imp.review.length} membre(s)</label>
+      </div>}
       {impMsg&&<div className={impMsg.startsWith("Erreur")||impMsg.startsWith("Fichier")?"error-box":"success-box"}>{impMsg}</div>}
-      <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setImpOpen(false)}>Fermer</button><button type="button" className="primary" disabled={!imp?.rows.length} onClick={confirmImport}>Ajouter {imp?.rows.length||0} membre(s)</button></div>
+      <div className="modal-actions"><button type="button" className="secondary" onClick={()=>setImpOpen(false)}>Fermer</button><button type="button" className="primary" disabled={!imp||!(imp.rows.length+(includeReview?imp.review.length:0))} onClick={confirmImport}>Ajouter {imp?imp.rows.length+(includeReview?imp.review.length:0):0} membre(s)</button></div>
     </div></div>}
     {detail&&<div className="modal-backdrop" onClick={()=>setDetail(null)}><div className="modal" style={{width:"min(760px,100%)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
       <div className="modal-head"><div><h2 style={{margin:0}}>{detail.first_name} {detail.last_name}</h2><div style={{marginTop:6,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><span className="muted">N° {detail.member_number}</span><span className={`badge ${detail.status}`}>{detail.status==="active"?"Actif":"Ancien membre"}</span></div></div><button type="button" className="icon-btn" onClick={()=>setDetail(null)}>×</button></div>
